@@ -1,0 +1,813 @@
+from flask import Flask, render_template, redirect, url_for, session, request, flash, jsonify, make_response
+from flask_sqlalchemy import SQLAlchemy
+from sqlalchemy import func
+from flask_bcrypt import Bcrypt
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SelectField
+from wtforms.validators import InputRequired
+from flask_bootstrap import Bootstrap 
+from functools import wraps
+from flask_migrate import Migrate
+import datetime
+from sqlalchemy import or_
+import pdfkit
+from datetime import date
+
+app = Flask(__name__)
+
+app.config['SECRET_KEY'] = '$#FHenfge24'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@localhost/dbklinik'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+bcrypt = Bcrypt(app)
+bootstrap = Bootstrap(app)
+
+class Login(FlaskForm):
+    username = StringField('', validators=[InputRequired()], render_kw={'autofocus': True, 'placeholder': 'Username'})
+    password = PasswordField('', validators=[InputRequired()], render_kw={'autofocus': True, 'placeholder': 'Password'})
+    level = SelectField('', validators=[InputRequired()], choices=[('Admin', 'Admin'), ('Dokter', 'Dokter'), ('Administrasi', 'Administrasi')])
+
+class User(db.Model):
+    __tablename__ = 'user'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(150))
+    password = db.Column(db.Text)
+    level = db.Column(db.String(100))
+    usernya = db.relationship('Pasien', backref=db.backref('user', lazy=True))
+
+    def __init__(self, username, password, level):
+        self.username = username
+        if password != '':
+            self.password = bcrypt.generate_password_hash(password).decode('UTF-8')
+        self.level = level
+
+class Dokter(db.Model):
+    __tablename__ = 'dokter'
+    
+    id = db.Column(db.Integer, primary_key=True)  # Primary key column
+    pegawai_id = db.Column(db.Integer, db.ForeignKey('pegawai.id'), nullable=False)
+    jadwal = db.Column(db.Text, nullable=False)
+    tarif_medis = db.Column(db.Float, nullable=False)
+    
+    # Relationship to access Pegawai details
+    pegawai = db.relationship('Pegawai', back_populates='dokters')
+
+    def __init__(self, pegawai_id, jadwal, tarif_medis):
+        self.pegawai_id = pegawai_id
+        self.jadwal = jadwal
+        self.tarif_medis = tarif_medis
+
+
+class Pegawai(db.Model):
+    __tablename__ = 'pegawai'
+    
+    id = db.Column(db.Integer, primary_key=True)  # Foreign key reference id
+    id_pegawai = db.Column(db.String, nullable=False, unique=True)  
+    nama = db.Column(db.String(150), nullable=False)  
+    alamat = db.Column(db.Text, nullable=True)  
+    no_hp = db.Column(db.String(15), nullable=True)  
+    jabatan = db.Column(db.String(100), nullable=True) 
+    spesialisasi = db.Column(db.String(100)) 
+    
+    # Relationship to access all associated Dokter instances
+    dokters = db.relationship('Dokter', back_populates='pegawai')
+
+    def __init__(self, id_pegawai, nama, alamat, no_hp, jabatan, spesialisasi):
+        self.id_pegawai = id_pegawai 
+        self.nama = nama
+        self.alamat = alamat
+        self.no_hp = no_hp
+        self.jabatan = jabatan
+        self.spesialisasi = spesialisasi
+
+
+class Suplier(db.Model):
+    __tablename__ = 'suplier'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    perusahaan = db.Column(db.String(200))
+    kontak = db.Column(db.String(100))
+    alamat = db.Column(db.Text)
+    supliernya = db.relationship('Obat', backref=db.backref('suplier', lazy=True))
+
+    def __init__(self, perusahaan, kontak, alamat):
+        self.perusahaan = perusahaan
+        self.kontak = kontak
+        self.alamat = alamat
+
+class Obat(db.Model):
+    __tablename__ = 'obat'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    namaObat = db.Column(db.String(150))
+    jenisObat = db.Column(db.String(150))
+    harga_beli = db.Column(db.Integer)
+    harga_jual = db.Column(db.Integer)
+    kondisi = db.Column(db.String(80))
+    suplier_id = db.Column(db.Integer, db.ForeignKey('suplier.id'))
+
+    def __init__(self, namaObat, jenisObat, harga_beli, harga_jual, kondisi, suplier_id):
+        self.namaObat = namaObat
+        self.jenisObat = jenisObat
+        self.harga_beli = harga_beli
+        self.harga_jual = harga_jual
+        self.kondisi = kondisi
+        self.suplier_id = suplier_id
+
+class Pendaftaran(db.Model):
+    __tablename__ = 'pendaftaran'
+    
+    id = db.Column(db.BigInteger, primary_key=True)
+    nama = db.Column(db.String(150))
+    tl = db.Column(db.String(100))
+    tg_lahir = db.Column(db.String(100))
+    jk = db.Column(db.String(100))
+    status = db.Column(db.String(100))
+    profesi = db.Column(db.String(100))
+    alamat = db.Column(db.Text)
+    keterangan = db.Column(db.String(100))
+    # dokter_id = db.Column(db.Integer, db.ForeignKey('dokter.id'))
+
+    # Relasi ke model Pasien
+    # pendaftaran_pasien = db.relationship('Pasien', backref=db.backref('pendaftaran', lazy=True))
+
+
+    def __init__(self, nama, tl, tg_lahir, jk, status, profesi, alamat, keterangan):
+        self.nama = nama
+        self.tl = tl
+        self.tg_lahir = tg_lahir
+        self.jk = jk
+        self.status = status
+        self.profesi = profesi
+        self.alamat = alamat
+        self.keterangan = keterangan
+        # self.dokter_id = dokter_id 
+
+class Pasien(db.Model):
+    __tablename__ = 'pasien'
+    
+    id = db.Column(db.BigInteger, primary_key=True)
+    nama = db.Column(db.String(150))
+    keluhan = db.Column(db.Text)
+    diagnosa = db.Column(db.String(100))
+    resep = db.Column(db.Text)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    pendaftaran_id = db.Column(db.BigInteger, db.ForeignKey('pendaftaran.id'))
+    tanggal = db.Column(db.String(100))
+    
+    def __init__(self, nama, keluhan, diagnosa, resep, user_id, pendaftaran_id, tanggal):
+        self.nama = nama
+        self.keluhan = keluhan
+        self.diagnosa = diagnosa
+        self.resep = resep
+        self.user_id = user_id
+        self.pendaftaran_id = pendaftaran_id
+        self.tanggal = tanggal
+
+class BiayaPendaftaran(db.Model):
+    __tablename__ = 'biayapendaftaran'
+    id = db.Column(db.Integer, primary_key=True)
+    nama = db.Column(db.String(100), nullable=False)
+    biaya = db.Column(db.Float, nullable=False)  
+
+    def __init__(self, nama, biaya):
+        self.nama = nama
+        self.biaya = biaya
+
+class BiayaAdministrasi(db.Model):
+    __tablename__ = 'biayaadministrasi'
+    id = db.Column(db.Integer, primary_key=True)
+    nama = db.Column(db.String(100), nullable=False)
+    biaya = db.Column(db.Float, nullable=False)  
+
+    def __init__(self, nama, biaya):
+        self.nama = nama
+        self.biaya = biaya
+
+
+with app.app_context():
+    db.create_all()
+
+
+def login_dulu(f):
+    @wraps(f)
+    def wrap(*args, **kwargs):
+        if 'login' in session:
+            return f(*args, **kwargs)
+        else:
+            return redirect(url_for('login'))
+    return wrap
+
+@app.route('/')
+def index():
+    if session.get('login') == True :
+        return redirect(url_for('dashboard'))
+    return redirect(url_for('login'))
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if session.get('login') == True :
+        return redirect(url_for('dashboard')) 
+    form = Login()
+    if form.validate_on_submit():
+        user = User.query.filter_by(username=form.username.data).first()
+        if user:
+            if bcrypt.check_password_hash(user.password, form.password.data) and user.level == form.level.data:
+                session['login'] = True
+                session['id'] = user.id
+                session['level'] = user.level
+                return redirect(url_for('dashboard'))
+        pesan = "Username atau Password anda salah"
+        return render_template("login.html", pesan=pesan, form=form)
+    return render_template('login.html', form=form)
+
+@app.route('/dashboard')
+@login_dulu
+def dashboard():
+    data1 = db.session.query(Dokter).count()
+    data2 = db.session.query(Pendaftaran).count()
+    data3 = db.session.query(User).count()
+    data4 = db.session.query(func.sum(Obat.harga_jual)).filter(Obat.kondisi == "Rusak").scalar()
+    data5 = db.session.query(func.sum(Obat.harga_jual)).filter(Obat.kondisi == "Baik").scalar()
+    return render_template('dashboard.html', data1=data1, data2=data2, data3=data3, data4=data4, data5=data5 )
+
+@app.route('/kelola_user')
+@login_dulu
+def kelola_user():
+    data = User.query.all()
+    return render_template('user.html', data=data)
+
+@app.route("/tambahuser", methods=["GET","POST"])
+@login_dulu
+def tambahuser():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        level = request.form["level"]
+        db.session.add(User(username,password,level))
+        db.session.commit()
+        return redirect(url_for("kelola_user"))
+
+@app.route('/edituser/<id>', methods=['GET','POST'])    
+@login_dulu
+def edituser(id):
+    data = User.query.filter_by(id=id).first()
+    if request.method == "POST":
+        try:
+            data.username = request.form["username"]
+            new_password = request.form["password"]
+            if new_password != "":
+                data.password = bcrypt.generate_password_hash(new_password).decode('utf-8')
+            data.level = request.form["level"]
+            db.session.commit()
+            return redirect(url_for("kelola_user"))    
+        except:
+            flash("Ada trouble")
+            return redirect(request.referrer)
+    return render_template('edituser.html', data=data)
+        
+@app.route('/hapususer/<id>', methods=['GET', 'POST'])
+@login_dulu
+def hapususer(id):
+    data = User.query.filter_by(id=id).first()
+    db.session.delete(data)
+    db.session.commit()
+    return redirect(url_for("kelola_user")) 
+
+@app.route('/pendaftaran')
+@login_dulu
+def pendaftaran():
+    data = Pendaftaran.query.all()
+    data1 = Dokter.query.all()
+    return render_template('pendaftaran.html', data=data, data1=data1)
+
+@app.route('/tambahdaftar', methods=["POST"])
+@login_dulu
+def tambahdaftar():
+    try:
+        nama = request.form.get('nama')
+        tl = request.form.get('tl')
+        tg_lahir = request.form.get('tg_lahir')
+        jk = request.form.get('jk')
+        status = request.form.get('status')
+        profesi = request.form.get('profesi')
+        alamat = request.form.get('alamat')
+        keterangan = request.form.get('keterangan')
+        # dokter_id = request.form.get('dokter_id')
+        
+        # Menambahkan data ke database
+        db.session.add(Pendaftaran(nama, tl, tg_lahir, jk, status, profesi, alamat, keterangan))
+        db.session.commit()
+        
+        # Mengembalikan respons JSON
+        return jsonify({"success": True})
+    except Exception as e:
+        print(e)  # Log error di server
+        return jsonify({"success": False}), 500
+
+@app.route('/editdaftar/<int:id>', methods=['POST'])
+@login_dulu
+def editdaftar(id):
+    try:
+        # Get the record by ID
+        patient = Pendaftaran.query.get(id)
+        if patient:
+            # Update fields with form data
+            patient.nama = request.form['nama']
+            patient.tl = request.form['tl']
+            patient.tg_lahir = request.form['tg_lahir']
+            patient.jk = request.form['jk']
+            patient.status = request.form['status']
+            patient.profesi = request.form['profesi']
+            patient.alamat = request.form['alamat']
+            patient.keterangan = request.form['keterangan']
+            # patient.dokter_id = request.form['dokter_id']
+            
+            db.session.commit()
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Record not found'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error editing record: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+    
+@app.route('/hapusdaftar/<id>', methods=['GET', 'POST'])
+@login_dulu
+def hapusdaftar(id):
+    data = Pendaftaran.query.filter_by(id=id).first()
+    db.session.delete(data)
+    db.session.commit()
+    return redirect(request.referrer) 
+
+@app.route('/apotik')
+@login_dulu
+def apotik():
+    data = Obat.query.all()
+    data1 = Suplier.query.all()
+    return render_template('apotik.html', data=data, data1=data1)
+
+@app.route('/tambahobat', methods=['GET', 'POST'])
+@login_dulu
+def tambahobat():
+    try:
+        namaObat = request.form.get('namaObat')
+        jenisObat = request.form.get('jenisObat')
+        harga_beli = request.form.get('harga_beli')
+        harga_jual = request.form.get('harga_jual')
+        kondisi = request.form.get('kondisi')
+        suplier_id = request.form.get('suplier_id')
+        # Menambahkan data ke database
+        db.session.add(Obat(namaObat, jenisObat, harga_beli, harga_jual, kondisi, suplier_id))
+        db.session.commit()
+        
+        flash('Obat berhasil ditambah!', 'success')
+        return redirect(url_for('apotik'))
+    except Exception as e:
+        print(e)
+        flash('Terjadi kesalahan saat tambah obat.', 'danger')
+        return redirect(url_for('apotik'))
+
+    
+@app.route('/editobat/<int:id>', methods=['POST'])
+@login_dulu
+def editobat(id):
+    try:
+        # Get the record by ID
+        data = Obat.query.get(id)
+        if data:
+            # Update fields with form data
+            data.namaObat = request.form['namaObat']
+            data.jenisObat = request.form['jenisObat']
+            data.harga_beli = request.form['harga_beli']
+            data.harga_jual= request.form['harga_jual']
+            data.kondisi = request.form['kondisi']
+            data.suplier_id = request.form['suplier_id']
+
+        db.session.commit()
+        flash('Obat berhasil diperbarui!', 'success')
+        return redirect(url_for('apotik'))
+    except Exception as e:
+        print(e)
+        flash('Terjadi kesalahan saat memperbarui obat.', 'danger')
+        return redirect(url_for('apotik'))
+
+@app.route('/hapusobat/<int:id>', methods=['GET', 'POST'])
+@login_dulu
+def hapusobat(id):
+    data = Obat.query.filter_by(id=id).first()
+    db.session.delete(data)
+    db.session.commit()
+    return redirect(request.referrer) 
+
+@app.route('/pegawai')
+@login_dulu
+def pegawai():
+    data = Pegawai.query.all()
+    return render_template('pegawai.html', data=data)
+
+@app.route('/tambahpegawai', methods=['GET', 'POST']) 
+@login_dulu
+def tambahpegawai():
+    if request.method == 'POST':
+        try:
+            id_pegawai = request.form['id_pegawai']
+            nama = request.form['nama']
+            alamat = request.form['alamat']
+            no_hp = request.form['no_hp']
+            jabatan = request.form['jabatan']
+            spesialisasi = request.form['spesialisasi']
+            
+            # Add the new employee to the database
+            db.session.add(Pegawai(id_pegawai, nama, alamat, no_hp, jabatan, spesialisasi))
+            db.session.commit()
+
+            flash('Pegawai berhasil ditambah!', 'success')
+            
+            # Redirect to the page that lists all employees after successful addition
+            return redirect(url_for('pegawai'))
+
+        except Exception as e:
+            print(e)
+            flash('Terjadi kesalahan saat tambah pegawai.', 'danger')
+            return redirect(url_for('pegawai'))
+
+    return render_template('tambahpegawai.html')
+
+@app.route('/editpegawai/<id_pegawai>', methods=['GET', 'POST'])  # Ensure this matches the form's POST
+@login_dulu
+def editpegawai(id_pegawai):
+    data = Pegawai.query.filter_by(id_pegawai=id_pegawai).first()
+    if request.method == 'POST':
+        # Debugging print to check form data
+        print(request.form)
+        
+        try:
+            # Ensure id_pegawai exists in form data
+            data.id_pegawai = request.form['id_pegawai']
+            data.nama = request.form['nama']
+            data.alamat = request.form['alamat']
+            data.no_hp = request.form['no_hp']
+            data.jabatan = request.form['jabatan']
+            data.spesialisasi = request.form['spesialisasi']
+            
+            # Update data in the database
+            db.session.commit()
+            return redirect(url_for('pegawai'))  # Redirect after successful update
+        except KeyError as e:
+            print(f"Missing form field: {e}")
+            return "Bad Request: Missing form field", 400
+    return render_template('editpegawai.html', data=data)
+
+@app.route('/hapuspegawai/<string:id_pegawai>', methods=['POST'])  # Hanya POST untuk menghapus
+@login_dulu
+def hapuspegawai(id_pegawai):
+    data = Pegawai.query.filter_by(id_pegawai=id_pegawai).first()
+    if data:
+        db.session.delete(data)
+        db.session.commit()
+    return redirect(request.referrer)  # Kembali ke halaman sebelumnya     
+
+@app.route('/dokter')
+@login_dulu
+def dokter():
+    dokter_data = Dokter.query.all()  # For listing existing doctors
+    pegawai_data = Pegawai.query.all()  # For listing all Pegawai in the dropdown
+    return render_template('dokter.html', dokter_data=dokter_data, pegawai_data=pegawai_data)
+
+@app.route('/tambahdokter', methods=['GET', 'POST'])
+@login_dulu
+def tambahdokter():
+    pegawais = Pegawai.query.all()  # Fetch Pegawai data to display in the dropdown
+    if request.method == 'POST':
+        try:
+            pegawai_id = request.form.get('pegawai_id')  # Should be pegawai_id, not id_dokter
+            jadwal = request.form.get('jadwal')
+            tarif_medis = request.form.get('tarif_medis')
+            
+            # Create new Dokter instance with pegawai_id
+            new_dokter = Dokter(pegawai_id=pegawai_id, jadwal=jadwal, tarif_medis=tarif_medis)
+            
+            # Add to the database
+            db.session.add(new_dokter)
+            db.session.commit()
+            
+            flash('Dokter berhasil ditambah!', 'success')
+            return redirect(url_for('dokter'))
+        except Exception as e:
+            db.session.rollback()  # Rollback in case of error
+            print(e)
+            flash('Terjadi kesalahan saat tambah dokter.', 'danger')
+            return redirect(url_for('dokter'))
+    
+    return render_template('tambahdokter.html', pegawais=pegawais)  # Pass pegawai list to template
+
+@app.route('/editdokter/<int:id>', methods=['GET', 'POST'])  # Use <int:id> if id is an integer
+@login_dulu
+def editdokter(id):
+    doctor = Dokter.query.get_or_404(id)  # Fetch by primary key (id)
+    pegawais = Pegawai.query.all()  # Fetch all Pegawai for dropdown list
+    
+    if request.method == 'POST':
+        jadwal = request.form.get('jadwal')
+        tarif_medis = request.form.get('tarif_medis')
+        pegawai_id = request.form.get('pegawai_id')  # Capture updated pegawai_id
+        
+        if not jadwal or not tarif_medis or not pegawai_id:
+            flash('Semua field harus diisi.', 'danger')
+            return redirect(url_for('editdokter', id=id))
+        
+        # Update doctor fields
+        doctor.jadwal = jadwal
+        doctor.tarif_medis = tarif_medis
+        doctor.pegawai_id = pegawai_id
+        
+        try:
+            db.session.commit()
+            flash('Data dokter berhasil diperbarui!', 'success')
+            return redirect(url_for('dokter'))
+        except Exception as e:
+            db.session.rollback()
+            flash('Terjadi kesalahan saat mengedit data dokter.', 'danger')
+            print(e)
+    
+    return render_template('editdokter.html', data=doctor, pegawais=pegawais)  # Pass current doctor data and Pegawai list
+
+@app.route('/hapusdokter/<int:id>', methods=['POST'])  # Use <int:id> if id is an integer
+@login_dulu
+def hapusdokter(id):
+    doctor = Dokter.query.get_or_404(id)  # Fetch by primary key (id)
+    
+    try:
+        db.session.delete(doctor)
+        db.session.commit()
+        flash('Dokter berhasil dihapus!', 'success')
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        db.session.rollback()
+        flash('Terjadi kesalahan saat menghapus dokter.', 'danger')
+        print(e)
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/suplier')
+@login_dulu
+def suplier():
+    data = Suplier.query.all()
+    return render_template('suplier.html', data=data)
+
+@app.route('/tambahsuplier', methods=['GET', 'POST'])
+@login_dulu
+def tambahsuplier():
+    try:
+        perusahaan = request.form.get('perusahaan')
+        kontak = request.form.get('kontak')
+        alamat = request.form.get('alamat')
+        # Menambahkan data ke database
+        db.session.add(Suplier(perusahaan, kontak, alamat))
+        db.session.commit()
+        
+        # Mengembalikan respons JSON
+        return jsonify({"success": True})
+    except Exception as e:
+        print(e)  # Log error di server
+        return jsonify({"success": False}), 500
+
+@app.route('/editsuplier/<int:id>', methods=['GET', 'POST']) 
+@login_dulu
+def editsuplier(id):
+    try:
+        # Get the record by ID
+        data = Suplier.query.get(id)
+        if data:
+            # Update fields with form data
+            data.perusahaan = request.form['perusahaan']
+            data.kontak = request.form['kontak']
+            data.alamat = request.form['alamat']         
+            db.session.commit()
+            return jsonify({'success': True})
+        else:
+            return jsonify({'success': False, 'error': 'Record not found'})
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error editing record: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+    
+@app.route('/hapussuplier/<int:id>', methods=['GET', 'POST'])
+@login_dulu
+def hapussuplier(id):
+    data = Suplier.query.filter_by(id=id).first()
+    db.session.delete(data)
+    db.session.commit()
+    return redirect(request.referrer)     
+
+@app.route('/tangani_pasien')
+@login_dulu
+def tangani_pasien():
+    data = Pendaftaran.query.filter_by(keterangan="Diproses").all()
+    return render_template('tangani.html', data=data)
+
+@app.route('/diagnosis/<int:id>', methods=['GET', 'POST']) 
+@login_dulu
+def diagnosis(id):
+    # Get the record by ID
+    data = Pendaftaran.query.filter_by(id=id).first()
+    if request.method == "POST":
+        nama = request.form['nama']
+        keluhan = request.form['keluhan']
+        diagnosa = request.form['diagnosa'] 
+        resep = request.form['resep']
+        user_id = request.form['user_id']
+        pendaftaran_id = request.form['pendaftaran_id']
+        tanggal = datetime.datetime.now().strftime("%d %B %Y Jam %H:%M:%S")
+        
+        # Update the data and set keterangan to "Selesai"
+        data.keterangan = "Selesai"		
+        db.session.add(data)	
+        db.session.commit()
+        
+        # Add a new Pasien record
+        pasien = Pasien(nama=nama, keluhan=keluhan, diagnosa=diagnosa, resep=resep, 
+                        user_id=user_id, pendaftaran_id=pendaftaran_id, tanggal=tanggal)
+        db.session.add(pasien)
+        db.session.commit()
+        
+        # Redirect back to the referring page
+        return redirect(request.referrer)
+    
+@app.route('/pencarian')
+@login_dulu
+def pencarian():
+    return render_template('pencarian.html')
+
+@app.route('/cari_data', methods=['GET', 'POST'])
+@login_dulu
+def cari_data():
+    if request.method  == "POST":
+        keyword = request.form["q"]
+        formt = "%{0}%".format(keyword)
+        datanya = Pasien.query.join(User, Pasien.user_id == User.id).filter(or_(Pasien.tanggal.like(formt))).all()
+        if datanya: 
+            flash ("Data berhasil di temukan")
+            tombol ="tombol"
+        elif not datanya:
+            pesan = "Data tidak berhasil ditemukan"
+            return render_template('pencarian.html', datanya=datanya, pesan=pesan)    
+    return render_template('pencarian.html', datanya=datanya, tombol=tombol, keyword=keyword)
+
+@app.route('/cetak_pdf/<keyword>', methods=['GET', 'POST'])
+@login_dulu
+def cetak_pdf(keyword):
+    formt = "%{0}%".format(keyword)
+    datanya = Pasien.query.join(User, Pasien.user_id == User.id).filter(or_(Pasien.tanggal.like(formt))).all()
+    html = render_template("pdf.html", datanya=datanya)
+    config = pdfkit.configuration(wkhtmltopdf="C:\\Program Files\\wkhtmltopdf\\bin\\wkhtmltopdf.exe")
+    pdf = pdfkit.from_string(html, False, configuration=config)  # Corrected 'configurtion' to 'configuration'
+    response = make_response(pdf)
+    response.headers["Content-Type"] = 'application/pdf'
+    response.headers["Content-Disposition"] = 'inline; filename=laporan.pdf'
+    return response
+
+@app.route('/biayapendaftaran')
+@login_dulu
+def biayapendaftaran():
+    data = BiayaPendaftaran.query.all()
+    return render_template('biayapendaftaran.html', data=data)
+
+@app.route('/tambahbiayapendaftaran', methods=['GET', 'POST'])
+@login_dulu
+def tambahbiayapendaftaran():
+    if request.method == 'POST':
+        nama = request.form['nama']
+        biaya = request.form['biaya']
+
+        # Buat objek baru untuk BiayaAdministrasi
+        biaya_pendaftaran_baru = BiayaPendaftaran(nama=nama, biaya=biaya)
+
+        # Tambahkan ke database
+        try:
+            db.session.add(biaya_pendaftaran_baru)
+            db.session.commit()
+            flash("Biaya Pendaftaran berhasil ditambahkan!", "success")
+            return redirect('/biayapendaftaran')
+        except:
+            db.session.rollback()
+            flash("Gagal menambahkan Biaya Pendaftaran.", "danger")
+            return redirect('/tambahbiayapendaftaran')
+
+    # Jika method GET, tampilkan form tambah
+    return render_template('tambahbiayapendaftaran.html')
+
+@app.route('/editbiayapendaftaran/<int:id>', methods=['GET', 'POST'])
+@login_dulu
+def editbiayapendaftaran(id):
+    try:
+        # Get the record by ID
+        data = BiayaPendaftaran.query.get(id)
+        if data:
+            # Update fields with form data
+            data.nama = request.form['nama']
+            data.biaya = request.form['biaya']     
+            db.session.commit()
+
+        db.session.commit()
+        flash('Biaya Pendaftaran berhasil diperbarui!', 'success')
+        return redirect(url_for('biayapendaftaran'))
+    except Exception as e:
+        print(e)
+        flash('Terjadi kesalahan saat memperbarui biaya pendaftaran.', 'danger')
+        return redirect(url_for('biayapendaftaran'))
+
+
+@app.route('/hapusbiayapendaftaran/<int:id>', methods=['POST'])
+def hapusbiayapendaftaran(id):
+    biaya_daftar = BiayaPendaftaran.query.get_or_404(id)
+
+    # Hapus dari database
+    try:
+        db.session.delete(biaya_daftar)
+        db.session.commit()
+        flash("Biaya Pendaftaran berhasil dihapus!", "success")
+        return redirect('/biayapendaftaran')
+    except:
+        db.session.rollback()
+        flash("Gagal menghapus Biaya Pendaftaran.", "danger")
+        return redirect('/biayapendaftaran')
+
+@app.route('/biayaadministrasi')
+@login_dulu
+def biayaadministrasi():
+    data = BiayaAdministrasi.query.all()
+    return render_template('biayaadministrasi.html', data=data)
+
+@app.route('/tambahbiayaadministrasi', methods=['GET', 'POST'])
+@login_dulu
+def tambahbiayaadministrasi():
+    if request.method == 'POST':
+        nama = request.form['nama']
+        biaya = request.form['biaya']
+
+        # Buat objek baru untuk BiayaAdministrasi
+        biaya_admin_baru = BiayaAdministrasi(nama=nama, biaya=biaya)
+
+        # Tambahkan ke database
+        try:
+            db.session.add(biaya_admin_baru)
+            db.session.commit()
+            flash("Biaya Administrasi berhasil ditambahkan!", "success")
+            return redirect('/biayaadministrasi')
+        except:
+            db.session.rollback()
+            flash("Gagal menambahkan Biaya Administrasi.", "danger")
+            return redirect('/tambahbiayaadministrasi')
+
+    # Jika method GET, tampilkan form tambah
+    return render_template('tambahbiayaadministrasi.html')
+
+@app.route('/editbiayaadministrasi/<int:id>', methods=['GET', 'POST'])
+@login_dulu
+def editbiayaadministrasi(id):
+    try:
+        # Get the record by ID
+        data = BiayaAdministrasi.query.get(id)
+        if data:
+            # Update fields with form data
+            data.nama = request.form['nama']
+            data.biaya = request.form['biaya']     
+            db.session.commit()
+
+        db.session.commit()
+        flash('Obat berhasil diperbarui!', 'success')
+        return redirect(url_for('biayaadministrasi'))
+    except Exception as e:
+        print(e)
+        flash('Terjadi kesalahan saat memperbarui obat.', 'danger')
+        return redirect(url_for('biayaadministrasi'))
+
+
+@app.route('/hapusbiayaadministrasi/<int:id>', methods=['POST'])
+def hapusbiayaadministrasi(id):
+    biaya_admin = BiayaAdministrasi.query.get_or_404(id)
+
+    # Hapus dari database
+    try:
+        db.session.delete(biaya_admin)
+        db.session.commit()
+        flash("Biaya Administrasi berhasil dihapus!", "success")
+        return redirect('/biayaadministrasi')
+    except:
+        db.session.rollback()
+        flash("Gagal menghapus Biaya Administrasi.", "danger")
+        return redirect('/biayaadministrasi')
+    
+@app.route('/logout')
+@login_dulu
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+if __name__ == '__main__':
+    app.run(debug=True, port=7000)

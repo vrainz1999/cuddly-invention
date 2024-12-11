@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 07, 2024 at 08:43 AM
+-- Generation Time: Dec 11, 2024 at 04:10 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -145,7 +145,8 @@ CREATE TABLE `dokter` (
 
 INSERT INTO `dokter` (`id`, `id_pegawai`, `jadwal`, `tarif_medis`) VALUES
 (1, 'DK001', 'Senin - Jumat 8:00 - 12:00', 150000.00),
-(7, 'DK002', 'Senin - Jumat 08:00 - 12:00', 130000.00);
+(7, 'DK002', 'Senin - Jumat 08:00 - 12:00', 130000.00),
+(9, 'DK004', 'senin - rabu', 300000.00);
 
 -- --------------------------------------------------------
 
@@ -174,7 +175,8 @@ INSERT INTO `obat` (`id`, `namaObat`, `jenisObat`, `harga_beli`, `harga_jual`, `
 (16, 'Omeprazole', 'Paten', 15000, 20000, 6, 'Baik'),
 (17, 'Amoxilin', 'Paten', 10000, 15000, 1, 'Baik'),
 (18, 'Paracetamol', 'Paten', 25000, 30000, 1, 'Baik'),
-(19, 'Konidin', 'Paten', 5000, 6500, 7, 'Baik');
+(19, 'Konidin', 'Paten', 5000, 6500, 7, 'Baik'),
+(20, 'antangin', 'Paten', 3000, 6000, 6, 'Baik');
 
 -- --------------------------------------------------------
 
@@ -223,6 +225,7 @@ INSERT INTO `pegawai` (`id_pegawai`, `nama`, `alamat`, `no_hp`, `jabatan`, `spes
 ('DK001', 'Dr. Ridwan', 'Jl. Kamboja No. 4', '080987654321', 'Dokter', 'Dokter Umum'),
 ('DK002', 'Dr. Dewi', 'Jl. Bunga No. 1, Surabaya', '08111001001', 'Dokter', 'Dokter Anak'),
 ('DK003', 'Dr. Bagus', 'Jl. Agrek1', '081234567', 'Dokter', 'Dokter Umum'),
+('DK004', 'Dr Farid', 'Sutorejo Timur ', '0813467977', 'Dokter', 'Dokter Umum'),
 ('PG001', 'Alan', 'Jl. Bunga No. 2', '08111001008', 'Staff Klinik', 'Admin'),
 ('PG002', 'Rara', 'Jl. Mawar No. 2', '08111001005', 'Staff Klinik', 'Kasir'),
 ('PG003', 'Mimin', 'Jl. Angsana No. 5', '08111001005', 'Staff Klinik', 'Apoteker'),
@@ -277,7 +280,8 @@ CREATE TABLE `pendaftaran` (
 INSERT INTO `pendaftaran` (`id_daftar`, `nama`, `tl`, `tg_lahir`, `jk`, `status`, `profesi`, `alamat`, `keterangan`, `id_pegawai`) VALUES
 ('DF001', 'Johan', 'Jakarta', '2024-11-21', 'Laki-Laki', 'Sudah Menikah', 'Karyawan Swasta', 'Jl. Bunga No. 2, Surabaya', 'Selesai', 'DK001'),
 ('DF002', 'Linda', 'Surabaya', '2024-11-01', 'Perempuan', 'Sudah Menikah', 'Guru', 'Jl. Bunga No. 2, Surabaya', 'Diproses', 'DK002'),
-('DF003', 'Wulan', 'Jombang', '2024-11-22', 'Perempuan', 'Belum Menikah', 'Pelajar', 'Jl. Pahlawan 12', 'Diproses', 'DK003');
+('DF003', 'Wulan', 'Jombang', '2024-11-22', 'Perempuan', 'Belum Menikah', 'Pelajar', 'Jl. Pahlawan 12', 'Diproses', 'DK003'),
+('DF004', 'Nina', 'Blitar', '2024-02-10', 'Perempuan', 'Sudah Menikah', 'Sales', 'blitar gang sawo', 'Diproses', 'DK004');
 
 -- --------------------------------------------------------
 
@@ -299,7 +303,8 @@ CREATE TABLE `suplier` (
 INSERT INTO `suplier` (`id`, `perusahaan`, `kontak`, `alamat`) VALUES
 (1, 'PT Kimia Farma', '081222111', 'Jl. Garuda'),
 (6, 'PT Sido Muncul', '081222111', 'Jl. Fatmawati'),
-(7, 'PT Arga Jaya', '08155544444', 'Jl. PENARUKAN bANTEN');
+(7, 'PT Arga Jaya', '08155544444', 'Jl. PENARUKAN bANTEN'),
+(9, 'PT viva', '08123456798', 'driyorejo barat ');
 
 -- --------------------------------------------------------
 
@@ -323,7 +328,8 @@ INSERT INTO `user` (`id`, `username`, `password`, `level`) VALUES
 (9, 'Dr.Ridwan', '$2b$12$NxsQ8Aoe6/N.crudZL6hqe/VvA0tU3UTYy5TpU5ATLy8DUNwafjyu', 'Dokter'),
 (13, 'Mimin', '$2b$12$QuZNjgJ6KTtIOXpDj89UmOLcQ93z47gODys2uz45v2UMfJA4bohhi', 'Apoteker'),
 (14, 'Rara', '$2b$12$mCEdLd8NlwboeL5iwtFd8O2smHzpUVFPq6BsBfPTvKGCv4rulkiVW', 'Kasir'),
-(15, 'Lisa', '$2b$12$2eu/sBYENVQ.4qAfjhObPuM/XUoY9FUYrYXvADv092zpbPQ5tgjve', 'Administrasi');
+(15, 'Lisa', '$2b$12$2eu/sBYENVQ.4qAfjhObPuM/XUoY9FUYrYXvADv092zpbPQ5tgjve', 'Administrasi'),
+(19, 'Dr.Farid', '$2b$12$yCLTGYMmbbV8UtoPkL1pfeS8DamlImhcDJLwxesqezuriWu8rtKwu', 'Dokter');
 
 --
 -- Indexes for dumped tables
@@ -446,13 +452,13 @@ ALTER TABLE `biayapendaftaran`
 -- AUTO_INCREMENT for table `dokter`
 --
 ALTER TABLE `dokter`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `obat`
 --
 ALTER TABLE `obat`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `pasien`
@@ -464,13 +470,13 @@ ALTER TABLE `pasien`
 -- AUTO_INCREMENT for table `suplier`
 --
 ALTER TABLE `suplier`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=19;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- Constraints for dumped tables

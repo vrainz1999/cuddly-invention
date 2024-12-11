@@ -25,6 +25,24 @@
           </a>
         </li>
         <li class="nav-item">
+          <a class="nav-link active" href="pegawai">
+            <span data-feather="users"></span>
+            Pegawai
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="/dokter">
+            <span data-feather="users"></span>
+            Dokter
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="kelola_user">
+            <span data-feather="users"></span>
+            Kelola User
+          </a>
+        </li>
+        <li class="nav-item">
           <a class="nav-link active" href="/pendaftaran">
             <span data-feather="file"></span>
             Pendaftaran Pasien
@@ -37,21 +55,22 @@
           </a>
         </li>
         <li class="nav-item">
-          <a class="nav-link active" href="/dokter">
-            <span data-feather="users"></span>
-            Dokter
-          </a>
-        </li>
-        <li class="nav-item">
           <a class="nav-link active" href="suplier">
             <span data-feather="bar-chart-2"></span>
             Suplier
           </a>
         </li>
+      <li class="nav-item">
+        <a class="nav-link active" href="biayaadministrasi">
+          <span data-feather="credit-card"></span>
+          Biaya Administrasi
+        </a>
+      </li>
+        </li>
         <li class="nav-item">
-          <a class="nav-link active" href="kelola_user">
-            <span data-feather="users"></span>
-            Kelola User
+          <a class="nav-link active" href="pembayaran">
+            <span data-feather="credit-card"></span>
+            Pembayaran
           </a>
         </li>
         {% elif session.level == 'Dokter' %}
@@ -79,6 +98,63 @@
             <span data-feather="file"></span>
             Pendaftaran Pasien
           </a>
+        </li>
+        {% elif session.level == 'Apoteker' %}
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">
+            <span data-feather="home"></span>
+            Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="/apotik">
+            <span data-feather="file"></span>
+            Apotik
+          </a>
+        </li>  
+        <li class="nav-item">
+          <a class="nav-link active" href="/suplier">
+            <span data-feather="file"></span>
+            Suplier
+          </a>
+        </li> 
+        <li class="nav-item">
+          <a class="nav-link active" href="/detail_obat">
+            <span data-feather="file"></span>
+            Detail Obat
+          </a>
+        </li> 
+        <li class="nav-item">
+          <a class="nav-link active" href="/bayar_obat">
+            <span data-feather="file"></span>
+            Bayar Obat
+          </a>
+        </li> 
+        {% elif session.level == 'Kasir' %}
+        <li class="nav-item">
+          <a class="nav-link active" aria-current="page" href="#">
+            <span data-feather="home"></span>
+            Dashboard
+          </a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active" href="/biayaadministrasi">
+            <span data-feather="file"></span>
+            Biaya Administrasi
+          </a>
+        </li> 
+        <li class="nav-item">
+          <a class="nav-link active" href="/dokter">
+            <span data-feather="file"></span>
+            Dokter
+          </a>
+        </li>  
+        <li class="nav-item">
+          <a class="nav-link active" href="/pembayaran">
+            <span data-feather="file"></span>
+            Pembayaran
+          </a>
+        </li> 
         {% endif %}
       </ul>
 
