@@ -28,6 +28,7 @@
         <thead class="table table-dark">
           <tr>
             <th scope="col">No</th>
+            <th scope="col">ID Daftar</th>
             <th scope="col">Nama</th>
             <th scope="col">Tempat Lahir</th>
             <th scope="col">Tanggal Lahir</th>
@@ -35,76 +36,83 @@
             <th scope="col">Status</th>
             <th scope="col">Profesi</th>
             <th scope="col">Alamat</th>
-            <th scope="col">Keterangan</th>
+            <th scope="col">Dokter</th>            
             <th scope="col">Aksi</th>
           </tr>
         </thead>
         <tbody>
           {% if data %}
-            {% for dt in data %}
-            <tr>
-              <th scope="row">{{ loop.index }}</th>
-              <td>{{ dt.nama }}</td>
-              <td>{{ dt.tl }}</td>
-              <td>{{ dt.tg_lahir }}</td>
-              <td>{{ dt.jk }}</td>
-              <td>{{ dt.status }}</td>
-              <td>{{ dt.profesi }}</td>
-              <td>{{ dt.alamat }}</td>
-              <td>{{ dt.keterangan }}</td>
-              <td>
-                <!-- Edit Button -->
-                <button class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal1{{ dt.id }}">Edit</button>
+          {% for dt in data %}
+          <tr>
+            <th scope="row">{{ loop.index }}</th>
+            <td>{{ dt.id_daftar }}</td>
+            <td>{{ dt.nama }}</td>
+            <td>{{ dt.tl }}</td>
+            <td>{{ dt.tg_lahir }}</td>
+            <td>{{ dt.jk }}</td>
+            <td>{{ dt.status }}</td>
+            <td>{{ dt.profesi }}</td>         
+            <td>{{ dt.alamat }}</td>
+            <td>{{ dt.pegawai.nama }}</td> 
+            <td>
+              <!-- Tombol Edit -->
+              <button class="btn btn-sm btn-primary" data-bs-toggle="modal"
+                data-bs-target="#exampleModal1{{ dt.id_daftar }}">Edit</button>
 
-                <!-- Edit Modal -->
-                <div class="modal fade" id="exampleModal1{{ dt.id }}" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
-                  <div class="modal-dialog">
-                    <div class="modal-content">
-                      <div class="modal-header">
-                        <h1 class="modal-title fs-5" id="exampleModalLabel">Edit Pasien</h1>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                      </div>
-                      <div class="modal-body p-4">
-                        <form class="row g-3 needs-validation" action="/diagnosis/{{ dt.id }}" id="ValidationCustom01" method="POST" novalidate>
-                          <!-- Form fields for editing data -->
-                          <div class="col-md-4 mb-3">
-                            <label for="editValidationCustom01{{ dt.id }}" class="form-label">Name</label>
-                            <input type="text" class="form-control" id="editValidationCustom01{{ dt.id }}" name="nama" value="{{ dt.nama }}" readonly>
-                            <div class="valid-feedback">Looks good!</div>
+              <!-- Modal Edit -->
+              <div class="modal fade" id="exampleModal1{{ dt.id_daftar }}" tabindex="-1" aria-labelledby="exampleModalLabel"
+                aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h1 class="modal-title fs-5" id="editModalLabel{{ dt.id_daftar }}">Edit Pasien</h1>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <form class="row g-3 needs-validation" action="{{ url_for('diagnosis', id_daftar=dt.id_daftar) }}" method="POST">
+                        <div class="col-md-4 mb-3">
+                          <label for="editValidationCustom01{{ dt.id_daftar }}" class="form-label">Name</label>
+                          <input type="text" class="form-control" value="{{ dt.nama }}" id="editValidationCustom01" name="nama" readonly>
+                          <div class="valid-feedback">
+                            Looks good!
                           </div>
+                        </div>
+                       
+                        <div class="mb-3">
+                          <label for="keluhan{{ dt.id_daftar }}" class="col-form-label">Keluhan:</label>
+                          <textarea class="form-control mb-3" name="keluhan" style="height: 180px;" id="messange-text" required></textarea>
+                        </div>
 
-                          <div class="mb-3">
-                            <label for="message-text" class="col-form-label">Keluhan:</label>
-                            <textarea class="form-control mb-3" name="keluhan" style="height: 180px;" id="message-text"></textarea>
-                          </div>
+                        <div class="mb-3">
+                          <label for="diagnosa{{ dt.id_daftar }}" class="col-form-label">Diagnosa:</label>
+                          <textarea class="form-control mb-3" name="diagnosa" style="height: 180px;" id="messange-text" required></textarea>
+                        </div>
 
-                          <div class="mb-3">
-                            <label for="message-text" class="col-form-label">Diagnosa:</label>
-                            <textarea class="form-control mb-3" name="diagnosa" style="height: 180px;" id="message-text"></textarea>
-                          </div>
+                        <div class="mb-3">
+                          <label for="resep{{ dt.id_daftar }}" class="col-form-label">Resep:</label>
+                          <textarea class="form-control mb-3" name="resep" style="height: 180px;" id="messange-text" required></textarea>
+                        </div>
 
-                          <div class="mb-3">
-                            <label for="message-text" class="col-form-label">Resep:</label>
-                            <textarea class="form-control mb-3" name="resep" style="height: 180px;" id="message-text"></textarea>
-                          </div>
-                          <input type="hidden" name="user_id" value="{{session.id}}">
-                          <input type="hidden" name="pendaftaran_id" value="{{dt.id}}">
-                          <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
-                            <button type="submit" class="btn btn-primary">Update</button>
-                          </div>
-                        </form>
-                      </div>
+
+                        <!-- Hidden input for user_id -->
+                        <input type="hidden" name="user_id" value="{{ session.id }}">
+                        <input type="hidden" name="pendaftaran_id" value="{{ dt.id_daftar }}">
+                        <div class="modal-footer">
+                          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tutup</button>
+                          <button type="submit" class="btn btn-primary">Update</button>
+                        </div>
+                      </form>
                     </div>
                   </div>
                 </div>
-              </td>
-            </tr>
-            {% endfor %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
           {% else %}
-            <tr>
-              <td colspan="10">Tidak ada data pasien</td>
-            </tr>
+          <tr>
+            <td colspan="10">Tidak ada data pasien</td>
+          </tr>
           {% endif %}
         </tbody>
       </table>
@@ -135,7 +143,7 @@
       req.onerror = () => {
         alert("Request error");
       };
-      const form = document.querySelector("#Daftar");
+      const form = document.querySelector("#tDaftar");
       const datanya = new FormData(form);
       req.open("POST", "{{ url_for('tambahdaftar') }}", true);
       req.send(datanya);

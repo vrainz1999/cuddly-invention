@@ -75,7 +75,9 @@
           <tr>
             <th scope="col">No</th>
             <th scope="col">Nama</th>
+            <th scope="col">ID Daftar</th>
             <th scope="col">Diagnosa</th>
+            <th scope="col">Resep</th>
             <th scope="col">Dokter</th>
             <th scope="col">Tanggal Periksa</th>
           </tr>
@@ -85,8 +87,10 @@
           <tr>
             <th scope="row">{{ loop.index }}</th>
             <td>{{ dt.nama }}</td>
+            <td>{{ dt.pendaftaran.id_daftar }}</td> 
             <td>{{ dt.diagnosa }}</td>
-            <td>{{ dt.user.username }}</td>
+            <td>{{ dt.resep }}</td>
+            <td>{{ dt.user.username }}</td>    
             <td>{{ dt.tanggal }}</td>
           </tr>
           {% endfor %}
