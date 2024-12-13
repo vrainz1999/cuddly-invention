@@ -71,7 +71,11 @@ class Pegawai(db.Model):
     jabatan = db.Column(db.String(100), nullable=True) 
     spesialisasi = db.Column(db.String(100)) 
     
+<<<<<<< HEAD
     detailobat = db.relationship('DetailObat', overlaps='pegawai')
+=======
+    detailobat = db.relationship('DetailObat', back_populates='pegawai')
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
     dokter = db.relationship('Dokter', back_populates='pegawai', uselist=False)
     pendaftaran = db.relationship('Pendaftaran', back_populates='pegawai')
 
@@ -221,9 +225,14 @@ class Obat(db.Model):
     kondisi = db.Column(db.String(80))
     suplier_id = db.Column(db.Integer, db.ForeignKey('suplier.id'))
 
+<<<<<<< HEAD
     #detailobat = db.relationship('DetailObat', overlaps='obat')
     detailobat = db.relationship("DetailObat", back_populates="obat", overlaps="detailobat")
     
+=======
+    detailobat = db.relationship('DetailObat', back_populates='obat')
+
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
     def __init__(self, namaObat, jenisObat, harga_beli, harga_jual, kondisi, suplier_id):
         self.namaObat = namaObat
         self.jenisObat = jenisObat
@@ -269,7 +278,11 @@ class BiayaObat(db.Model):
     pendaftaran = db.relationship('Pendaftaran', back_populates="biaya_obats")
     
     def __init__(self, id_bobt, daftar_id, total_bayar, metode_bayar):
+<<<<<<< HEAD
         self.id_bobt = id_bobt
+=======
+        self.id_dobt = id_bobt
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
         self.daftar_id = daftar_id
         self.total_bayar = total_bayar
         self.metode_bayar = metode_bayar
@@ -1222,6 +1235,7 @@ def hapus_detail_obat(id_dobt):
 
     return redirect(url_for('detail_obat'))
 
+<<<<<<< HEAD
 
 @app.route('/calculate_total_biayaobat/<string:daftar_id>', methods=['GET'])
 def calculate_total_biayaobat(daftar_id):
@@ -1240,17 +1254,27 @@ def calculate_total_biayaobat(daftar_id):
 @app.route('/biaya_obat')
 @login_dulu
 def biaya_obat():
+=======
+@app.route('/biaya_obat')
+@login_dulu
+def bayar_obat():
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
     pasiennya = Pendaftaran.query.all()  
     print("Data pasien:", [(p.id_daftar, p.nama) for p in pasiennya])
     data = BiayaObat.query.all()  
 
     return render_template(
+<<<<<<< HEAD
         'biayaobat.html', 
+=======
+        'bayarobat.html', 
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
         pasiennya=pasiennya, 
         data=data
     )
 
 @app.route('/tambah_biayaobat', methods=['POST'])
+<<<<<<< HEAD
 @login_dulu
 def tambah_biayaobat():
     print("Received POST request")
@@ -1306,6 +1330,42 @@ def tambah_biayaobat():
 @login_dulu
 def edit_biayaobat(id_bobt):
     data = request.form
+=======
+def tambah_biayaobat():
+    data = request.get_json()
+    daftar_id = data.get('daftar_id')
+    metode_bayar = data.get('metode_bayar')
+
+    # Hitung total biayaobat dari detail_obat
+    total_biaya = db.session.query(db.func.sum(DetailObat.qty * DetailObat.harga)) \
+                            .filter_by(daftar_id=daftar_id).scalar()
+
+    if not total_biaya:
+        return jsonify({"message": f"Tidak ada data detail_obat untuk daftar_id '{daftar_id}'"}), 404
+
+    # Buat data pembayaran obat baru
+    new_biayaobat = BiayaObat(
+        id_bobt=f"BO_{daftar_id}",
+        daftar_id=daftar_id,
+        total_bayar=total_biaya,
+        metode_bayar=metode_bayar
+    )
+
+    # Simpan ke database
+    db.session.add(new_biayaobat)
+    db.session.commit()
+
+    return jsonify({"message": "Data biaya obat berhasil ditambahkan", "data": {
+        "id_bobt": new_biayaobat.id_bobt,
+        "daftar_id": new_biayaobat.daftar_id,
+        "total_bayar": new_biayaobat.total_bayar,
+        "metode_bayar": new_biayaobat.metode_bayar
+    }}), 201
+
+@app.route('/edit_biayaobat/<id_bobt>', methods=['PUT'])
+def edit_biayaobat(id_bobt):
+    data = request.get_json()
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
     metode_bayar = data.get('metode_bayar')
 
     biayaobat = BiayaObat.query.filter_by(id_bobt=id_bobt).first()
@@ -1331,6 +1391,7 @@ def edit_biayaobat(id_bobt):
     }})
 	
 @app.route('/hapus_biayaobat/<id_bobt>', methods=['DELETE'])
+<<<<<<< HEAD
 def hapus_biayaobat(id_bobt):
     try:
         # Cari data berdasarkan ID
@@ -1348,6 +1409,19 @@ def hapus_biayaobat(id_bobt):
         print(f"Error saat menghapus data: {e}")
         db.session.rollback()
         return jsonify({"error": "Terjadi kesalahan saat menghapus data"}), 500
+=======
+def hapus_bayarobat(id_bobt):
+    biayaobat = BiayaObat.query.filter_by(id_bobt=id_bobt).first()
+
+    if not biayaobat:
+        return jsonify({"message": f"Data biaya obat dengan id '{id_bobt}' tidak ditemukan"}), 404
+
+    db.session.delete(biayaobat)
+    db.session.commit()
+
+    return jsonify({"message": "Data pembayaran obat berhasil dihapus"}), 200
+
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 
 
 @app.route('/logout')
@@ -1357,6 +1431,11 @@ def logout():
     return redirect(url_for('login'))
 
 if __name__ == '__main__':
+<<<<<<< HEAD
     # app.run(debug=True, port=7000)
     app.run(host='0.0.0.0', port=7000)
   
+=======
+ #   app.run(debug=True, port=7000)
+ app.run(host='0.0.0.0', port=7000)
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77

@@ -3,7 +3,11 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
+<<<<<<< HEAD
 -- Generation Time: Dec 12, 2024 at 04:05 PM
+=======
+-- Generation Time: Dec 07, 2024 at 08:43 AM
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -102,6 +106,7 @@ CREATE TABLE `biaya_obat` (
   `metode_bayar` varchar(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+<<<<<<< HEAD
 --
 -- Dumping data for table `biaya_obat`
 --
@@ -109,6 +114,8 @@ CREATE TABLE `biaya_obat` (
 INSERT INTO `biaya_obat` (`id_bobt`, `daftar_id`, `total_bayar`, `metode_bayar`) VALUES
 ('B01', 'DF001', 10000.00, 'Debit');
 
+=======
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 -- --------------------------------------------------------
 
 --
@@ -131,8 +138,12 @@ CREATE TABLE `detailobat` (
 --
 
 INSERT INTO `detailobat` (`id_dobt`, `daftar_id`, `id_obat`, `qty`, `harga`, `total`, `tanggal_resep`, `pegawai_id`) VALUES
+<<<<<<< HEAD
 ('D01', 'DF001', 10, 1, 5000, 5000, '2024-12-11', 'DK001'),
 ('D02', 'DF001', 13, 1, 5000, 5000, '2024-12-12', 'DK001');
+=======
+('D01', 'DF001', 10, 4, 1000, 4000, '2024-12-05', 'DK001');
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 
 -- --------------------------------------------------------
 
@@ -153,8 +164,12 @@ CREATE TABLE `dokter` (
 
 INSERT INTO `dokter` (`id`, `id_pegawai`, `jadwal`, `tarif_medis`) VALUES
 (1, 'DK001', 'Senin - Jumat 8:00 - 12:00', 150000.00),
+<<<<<<< HEAD
 (7, 'DK002', 'Senin - Jumat 08:00 - 12:00', 170000.00),
 (9, 'DK003', 'Rabu - Jumat 9:00 - Selesai', 120000.00);
+=======
+(7, 'DK002', 'Senin - Jumat 08:00 - 12:00', 130000.00);
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 
 -- --------------------------------------------------------
 
@@ -455,7 +470,11 @@ ALTER TABLE `biayapendaftaran`
 -- AUTO_INCREMENT for table `dokter`
 --
 ALTER TABLE `dokter`
+<<<<<<< HEAD
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+=======
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+>>>>>>> bfb8c8d8b9715893df8fd2181af2e9911fbace77
 
 --
 -- AUTO_INCREMENT for table `obat`
